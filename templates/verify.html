@@ -114,7 +114,7 @@
 
     <div class="bg-white p-8 md:p-10 rounded-xl shadow-2xl max-w-md w-full relative z-10 form-fade-in">
         <div class="text-center mb-8">
-            <a href="#" class="flex items-center justify-center space-x-2 mb-4">
+            <a href="/" class="flex items-center justify-center space-x-2 mb-4">
                 <svg class="h-10 w-10 text-medium-aquamarine floating-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM11 15H13V17H11V15ZM11 7H13V13H11V7Z" />
                     <path d="M12 2.09961C12 2.09961 12.7618 2.09961 13.4226 2.36084C16.0992 3.27919 19.5 5.51823 19.5 9.09961V14.0996C19.5 15.7605 18.7411 17.2996 17.5 18.0996L12 21.0996L6.5 18.0996C5.25887 17.2996 4.5 15.7605 4.5 14.0996V9.09961C4.5 5.51823 7.90081 3.27919 10.5774 2.36084C11.2382 2.09961 12 2.09961 12 2.09961Z" stroke="#66CDAA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -128,10 +128,10 @@
             <p class="text-sm text-dark-grey mt-2">A verification code has been sent to your email address.</p>
         </div>
 
-        <form>
+        <form action="/verify" method="POST" class="space-y-6">
             <div class="mb-4">
-                <label for="verificationCode" class="block text-dark-grey text-sm font-semibold mb-2">Verification Code</label>
-                <input type="text" id="verificationCode" name="verificationCode" class="w-full px-4 py-2 border border-subtle-grey rounded-lg focus:ring-2 focus:ring-medium-aquamarine focus:border-transparent transition duration-200 input-focus-border text-center tracking-widest text-lg" placeholder="Enter 6-digit code" maxlength="6" required>
+                <label for="code" class="block text-dark-grey text-sm font-semibold mb-2">Verification Code</label>
+                <input type="text" id="code" name="code" class="w-full px-4 py-2 border border-subtle-grey rounded-lg focus:ring-2 focus:ring-medium-aquamarine focus:border-transparent transition duration-200 input-focus-border text-center tracking-widest text-lg" placeholder="Enter 6-digit code" maxlength="6" required>
             </div>
             <button type="submit" class="w-full bg-bright-cerulean text-white font-montserrat font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition duration-300 btn-hover-scale">
                 Verify Code
@@ -139,10 +139,10 @@
         </form>
 
         <p class="text-center text-sm text-dark-grey mt-6">
-            Didn't receive the code? <a href="#" class="text-bright-cerulean hover:underline font-semibold">Resend Code</a>
+            Didn't receive the code? <a href="/verify" class="text-bright-cerulean hover:underline font-semibold">Resend Code</a>
         </p>
         <p class="text-center text-sm text-dark-grey mt-2">
-            <a href="#" class="text-bright-cerulean hover:underline font-semibold">Back to Login</a>
+            <a href="/login" class="text-bright-cerulean hover:underline font-semibold">Back to Login</a>
         </p>
     </div>
 </body>

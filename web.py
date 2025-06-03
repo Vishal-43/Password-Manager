@@ -54,18 +54,21 @@ async def post_signup(username : str = Form(...),
     else:
         
         res = db.create_user(username=username,email=email,password=password,verification_status="not_verified")
-        if res:
+        print("res",res)
+        print("success ✅")
+        if res[0]:
             
             success_message = "User created successfully!"
             verification_code = sendmail.send_verification_code(email=email)
             request.session['verification_code'] = verification_code  # Store verification code in session
             request.session['unverified_email'] = email  # Store email in session
+            print("sucess ✅")
             return RedirectResponse(url="/verify", status_code=303)
             # return templates.TemplateResponse("signup.html", {"request": request, "error": error_message})
             # return templates.TemplateResponse("signup.html", {"request": request, "success": success_message})
-
+            
         else:
-            error_message = "Error creating user. Please try again."
+            error_message = res[1]
             return templates.TemplateResponse("signup.html", {"request": request, "error": error_message})
     # return templates.TemplateResponse("signup.html", {"request": request})
 @app.get("/verify", response_class=HTMLResponse)
@@ -108,12 +111,14 @@ async def get_login(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 async def post_login(request: Request, email: str = Form(...), password: str = Form(...)):
     user = db.get_user_login(email=email, password=password)
-    if user:
-        request.session['user'] = user[0]
+    print(request.session.get('email'))
+    if user[0]:
+        request.session['user'] = user[1]
         request.session['email'] = email
+        
         return RedirectResponse(url="/dashboard", status_code=303)
     else:
-        error_message = "Invalid email or password or email is not verified."
+        error_message = user[1]
         return templates.TemplateResponse("login.html", {"request": request, "error": error_message})
 @app.get("/forgot_passsword", response_class=HTMLResponse)
 async def get_forgot_password(request: Request):

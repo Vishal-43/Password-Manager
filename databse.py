@@ -1,5 +1,7 @@
 import psycopg2
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 class Database:
     def start_connnection(self):
@@ -8,9 +10,9 @@ class Database:
             conn = psycopg2.connect(
             host="localhost",
             port="5432",  # Default port; change if needed
-            database="stockly",
-            user="postgres",      # 🔁 Replace this
-            password="Vishal#33"   # 🔁 Replace this
+            database=os.getenv("database"),
+            user=os.getenv("user"),
+            password=os.getenv("password")
                 )
                 
             print("✅ Connected to PostgreSQL successfully.")
@@ -46,7 +48,8 @@ class Database:
                 if cursor.fetchone():
                     print("Email is already registered.")
                     self.close_connection(conn)
-                    return False
+                    ls = [False, "Email is already registered."]
+                    return ls
                 else:
                     # Insert data into the "USER" table
                     cursor.execute('''
@@ -58,12 +61,12 @@ class Database:
                     conn.commit()
                     print("User registered successfully!")
                 self.close_connection(conn)
-                return True
+                return [True, "User registered successfully."]
 
             except Exception as e:
                 print("❌ Error:", e)
                 self.close_connection(conn)
-                return False
+                return [False, str(e)]  # Return False and the error message
        
         
     def close_connection(self,conn):
@@ -160,6 +163,7 @@ class Database:
     def get_user_login(self,email,password):
         conn = self.start_connnection()
         if conn is None:
+            print("❌ Connection failed due to none conn.")
             self.close_connection(conn)
             return False
         else:
@@ -167,15 +171,16 @@ class Database:
                 cursor = conn.cursor()
                 query = 'SELECT * FROM "USER" WHERE email = %s AND password = %s AND verification_status = %s'
                 cursor.execute(query, (email, password,"verified"))
+                print(email, password)
                 user = cursor.fetchone()
                 if user:
-                    print("User found:", user[0])
-                    return user
+                    print("User found:", user[2])  # Assuming user ID is at index 2
+                    return [True, user[2]]  # Return True and the user ID
                 else:
                     print("User not found.")
-                    return False
+                    return [False, "User not found or email is not verified."]
             except Exception as e:
                 print("❌ Error:", e)
-                return False
+                return [False, str(e)]
             finally:
                 self.close_connection(conn)
