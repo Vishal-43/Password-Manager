@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureVault - Your Digital Fortress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to integrate the SecureVault design system */
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #F8F9FA; /* Light Grey Background */
+            color: #343A40; /* Dark Grey Text */
+            overflow-x: hidden; /* Prevent horizontal scroll due to animations */
+        }
+
+        /* Typography */
+        .font-montserrat {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Colors */
+        .bg-dark-teal { background-color: #004D40; } /* Primary */
+        .text-dark-teal { color: #004D40; }
+        .border-dark-teal { border-color: #004D40; }
+
+        .bg-medium-aquamarine { background-color: #66CDAA; } /* Secondary */
+        .text-medium-aquamarine { color: #66CDAA; }
+        .border-medium-aquamarine { border-color: #66CDAA; }
+
+        .bg-bright-cerulean { background-color: #007BFF; } /* Accent (CTA) */
+        .text-bright-cerulean { color: #007BFF; }
+
+        .bg-light-grey { background-color: #F8F9FA; }
+        .text-dark-grey { color: #343A40; }
+        .text-charcoal { color: #212529; }
+        .text-off-white { color: #E0E0E0; }
+
+        .border-subtle-grey { border-color: #CED4DA; }
+        .border-light-slate-grey { border-color: #B0BEC5; }
+
+        .text-secure-green { color: #28A745; }
+        .text-amber { color: #FFC107; }
+        .text-crimson-red { color: #DC3545; }
+
+        /* Animations */
+        .card-item {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .card-item.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-element {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        .hero-element-delay-1 { animation-delay: 0.2s; }
+        .hero-element-delay-2 { animation-delay: 0.4s; }
+        .hero-element-delay-3 { animation-delay: 0.6s; }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Hollow Button */
+        .btn-hollow {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .btn-hollow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white; /* Initial background */
+            transform: translateX(-100%);
+            transition: transform 0.4s ease-out;
+            z-index: -1;
+        }
+        .btn-hollow:hover::before {
+            transform: translateX(0);
+        }
+        .btn-hollow:hover {
+            color: #007BFF; /* Text color on hover */
+            border: 2px solid #007BFF; /* Border color on hover */
+        }
+
+        /* Wavy Text Effect */
+        .wavy-text span {
+            display: inline-block;
+            animation: wavy 1.5s infinite ease-in-out;
+            animation-delay: calc(0.05s * var(--i));
+        }
+        @keyframes wavy {
+            0%, 100% { transform: translateY(0); }
+            20% { transform: translateY(-5px); }
+            40% { transform: translateY(0); }
+        }
+
+        /* Icon Pulse Animation */
+        .icon-pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Section Slide In */
+        .section-slide-in {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+        }
+        .section-slide-in.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Floating Icon */
+        .floating-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Hero Background Pattern */
+        .hero-pattern {
+            background-image: radial-gradient(#66CDAA 1px, transparent 1px),
+                              radial-gradient(#66CDAA 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            animation: pattern-move 60s linear infinite;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05; /* Very subtle */
+            z-index: -1;
+        }
+
+        @keyframes pattern-move {
+            from { background-position: 0 0, 10px 10px; }
+            to { background-position: 1000px 1000px, 1010px 1010px; }
+        }
+
+        /* Custom scrollbar for a more polished look (optional) */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F8F9FA;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #B0BEC5; /* Light Slate Grey */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #004D40; /* Dark Teal */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-dark-teal shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="flex items-center space-x-2">
+                <svg class="h-8 w-8 text-medium-aquamarine floating-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM11 15H13V17H11V15ZM11 7H13V13H11V7Z" />
+                    <path d="M12 2.09961C12 2.09961 12.7618 2.09961 13.4226 2.36084C16.0992 3.27919 19.5 5.51823 19.5 9.09961V14.0996C19.5 15.7605 18.7411 17.2996 17.5 18.0996L12 21.0996L6.5 18.0996C5.25887 17.2996 4.5 15.7605 4.5 14.0996V9.09961C4.5 5.51823 7.90081 3.27919 10.5774 2.36084C11.2382 2.09961 12 2.09961 12 2.09961Z" stroke="#66CDAA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9.5 12L11 13.5L14.5 10" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="font-montserrat text-2xl">
+                    <span class="font-semibold text-off-white">Secure</span><span class="font-bold text-medium-aquamarine">Vault</span>
+                </span>
+            </a>
+            <nav class="space-x-6">
+                <a href="#features" class="text-off-white hover:text-medium-aquamarine transition duration-300 font-montserrat text-sm">Features</a>
+                <a href="#" class="bg-bright-cerulean text-white px-4 py-2 rounded-lg hover:opacity-90 transition duration-300 font-montserrat text-sm font-semibold">Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="bg-dark-teal text-off-white py-20 md:py-32 relative overflow-hidden">
+        <div class="hero-pattern"></div>
+        <div class="container mx-auto px-6 text-center relative z-10">
+            <h1 class="text-4xl md:text-6xl font-montserrat font-semibold mb-6 hero-element wavy-text">
+                <script>
+                    const titleText = "SecureVault: Your Digital Fortress";
+                    document.write(titleText.split('').map((char, i) => `<span style="--i: ${i}">${char}</span>`).join(''));
+                </script>
+            </h1>
+            <p class="text-lg md:text-xl mb-10 max-w-2xl mx-auto hero-element hero-element-delay-1">
+                Effortlessly manage and protect your passwords with state-of-the-art security.
+                Clarity, simplicity, and peace of mind, all in one place.
+            </p>
+            <div class="space-x-0 md:space-x-4 space-y-4 md:space-y-0 hero-element hero-element-delay-2">
+                <a href="#" class="bg-bright-cerulean text-white font-montserrat font-semibold px-8 py-3 rounded-lg transition duration-300 text-lg inline-block btn-hollow">
+                    Get Started Free
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-16 md:py-24 bg-light-grey section-slide-in">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl md:text-4xl font-montserrat font-semibold text-charcoal text-center mb-12 md:mb-16">
+                Why Choose SecureVault?
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+                <div class="card-item bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1">
+                    <div class="flex items-center justify-center bg-medium-aquamarine h-16 w-16 rounded-full mb-6 mx-auto icon-pulse">
+                        <svg class="h-8 w-8 text-dark-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h3 class="font-montserrat text-xl font-semibold text-dark-teal mb-3 text-center">Ironclad Security</h3>
+                    <p class="text-dark-grey text-center leading-relaxed">
+                        Utilizing advanced encryption standards to keep your sensitive data impenetrable. Your security is our top priority.
+                    </p>
+                </div>
+
+                <div class="card-item bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1" style="transition-delay: 0.1s;">
+                    <div class="flex items-center justify-center bg-medium-aquamarine h-16 w-16 rounded-full mb-6 mx-auto icon-pulse">
+                        <svg class="h-8 w-8 text-dark-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="font-montserrat text-xl font-semibold text-dark-teal mb-3 text-center">Effortless Management</h3>
+                    <p class="text-dark-grey text-center leading-relaxed">
+                        Intuitive interface makes organizing, accessing, and generating strong passwords a breeze. Save time and reduce hassle.
+                    </p>
+                </div>
+
+                <div class="card-item bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1" style="transition-delay: 0.2s;">
+                    <div class="flex items-center justify-center bg-medium-aquamarine h-16 w-16 rounded-full mb-6 mx-auto icon-pulse">
+                        <svg class="h-8 w-8 text-dark-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h3 class="font-montserrat text-xl font-semibold text-dark-teal mb-3 text-center">Cross-Platform Access</h3>
+                    <p class="text-dark-grey text-center leading-relaxed">
+                        Securely access your vault from any device, anywhere. Your passwords are always synced and available when you need them.
+                    </p>
+                </div>
+
+                <div class="card-item bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1" style="transition-delay: 0.3s;">
+                    <div class="flex items-center justify-center bg-medium-aquamarine h-16 w-16 rounded-full mb-6 mx-auto icon-pulse">
+                        <svg class="h-8 w-8 text-dark-teal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                    </div>
+                    <h3 class="font-montserrat text-xl font-semibold text-dark-teal mb-3 text-center">Clarity & Simplicity</h3>
+                    <p class="text-dark-grey text-center leading-relaxed">
+                        An intuitive and uncluttered interface designed for ease of use. Focus on what matters without distractions.
+                    </p>
+                </div>
+
+                <div class="card-item bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1" style="transition-delay: 0.4s;">
+                    <div class="flex items-center justify-center bg-medium-aquamarine h-16 w-16 rounded-full mb-6 mx-auto icon-pulse">
+                        <svg class="h-8 w-8 text-dark-teal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-montserrat text-xl font-semibold text-dark-teal mb-3 text-center">Modern & Professional</h3>
+                    <p class="text-dark-grey text-center leading-relaxed">
+                        A sleek design that inspires confidence and trust, reflecting the robustness of our security measures.
+                    </p>
+                </div>
+
+                <div class="card-item bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1" style="transition-delay: 0.5s;">
+                    <div class="flex items-center justify-center bg-medium-aquamarine h-16 w-16 rounded-full mb-6 mx-auto icon-pulse">
+                        <svg class="h-8 w-8 text-dark-teal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-montserrat text-xl font-semibold text-dark-teal mb-3 text-center">Quick & Efficient</h3>
+                    <p class="text-dark-grey text-center leading-relaxed">
+                        Designed for speed and ease of use, allowing you to manage your digital security swiftly and effectively.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-charcoal text-off-white py-12 section-slide-in">
+        <div class="container mx-auto px-6 text-center">
+            <div class="mb-4">
+                   <a href="#" class="flex items-center justify-center space-x-2 mb-4">
+                     <svg class="h-7 w-7 text-medium-aquamarine floating-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                           <path d="M12 2.09961C12 2.09961 12.7618 2.09961 13.4226 2.36084C16.0992 3.27919 19.5 5.51823 19.5 9.09961V14.0996C19.5 15.7605 18.7411 17.2996 17.5 18.0996L12 21.0996L6.5 18.0996C5.25887 17.2996 4.5 15.7605 4.5 14.0996V9.09961C4.5 5.51823 7.90081 3.27919 10.5774 2.36084C11.2382 2.09961 12 2.09961 12 2.09961Z" stroke="#66CDAA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                           <path d="M9.5 12L11 13.5L14.5 10" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                     </svg>
+                     <span class="font-montserrat text-xl">
+                         <span class="font-semibold text-off-white">Secure</span><span class="font-bold text-medium-aquamarine">Vault</span>
+                     </span>
+                   </a>
+                <p class="text-sm text-gray-400">Your trust, secured.</p>
+            </div>
+            <div class="text-sm text-gray-500">
+                &copy; <span id="currentYear"></span> SecureVault. All rights reserved.
+                <p class="mt-1">Designed with <span class="text-medium-aquamarine">&hearts;</span> for your security.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // JavaScript for animations and dynamic content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current year in footer
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            // Intersection Observer for card animations
+            const cards = document.querySelectorAll('.card-item');
+            const sectionsToAnimate = document.querySelectorAll('.section-slide-in');
+
+            const observerOptions = {
+                root: null, // relative to document viewport
+                rootMargin: '0px',
+                threshold: 0.1 // 10% of item is visible
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                        observer.unobserve(entry.target); // Optional: stop observing once animated
+                    }
+                });
+            }, observerOptions);
+
+            cards.forEach(card => {
+                observer.observe(card);
+            });
+
+            sectionsToAnimate.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+
+</body>
+</html>
