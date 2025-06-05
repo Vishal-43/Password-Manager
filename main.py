@@ -1,4 +1,4 @@
-import sqlite3
+
 from cryptography.fernet import Fernet
 
 
