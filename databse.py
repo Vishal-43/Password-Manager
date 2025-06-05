@@ -6,7 +6,7 @@ load_dotenv()
 class Database:
     def start_connnection(self):
         try:
-        # Connect to your 'stockly' PostgreSQL database
+       
             conn = psycopg2.connect(
             host="localhost",
             port="5432",  # Default port; change if needed
@@ -184,3 +184,5 @@ class Database:
                 return [False, str(e)]
             finally:
                 self.close_connection(conn)
+
+             
