@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
-
+# should i usesupabse
 # Load environment variables from .env file
 load_dotenv()
 
