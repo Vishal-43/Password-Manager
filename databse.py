@@ -186,3 +186,20 @@ class Database:
                 return False, "Invalid email or password."
 
  
+    def delete_user(self, email):
+        """
+        Deletes a user by email.
+        Returns a tuple: (success: bool, message: str)
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return False, "Database connection error."
+
+            cursor.execute('DELETE FROM "USER" WHERE email = %s', (email,))
+            conn.commit()
+            if cursor.rowcount > 0:
+                return True, "User deleted successfully."
+            else:
+                return False, "User not found."
+            
+
