@@ -228,7 +228,7 @@ class Database:
             else:
                 return False, "User not found."
             
-    def save_password(self, user_id, website, username, encrypted_password: bytes): # Added type hint for clarity
+    def save_password(self, user_id, website, username, encrypted_password): # Added type hint for clarity
         """
         Saves an encrypted password for a specific user.
 
@@ -245,6 +245,8 @@ class Database:
             INSERT INTO passwords (user_id, website, username, password) 
             VALUES (%s, %s, %s, %s);
         """
+        print(encrypted_password)  # Debugging line to check the encrypted password format
+
         
         try:
             with self.get_connection() as (conn, cursor):
@@ -281,7 +283,7 @@ class Database:
                         "id": row[0],
                         "website": row[1],
                         "username": row[2],
-                        "encrypted_password": row[3] # This will now be bytes from BYTEA column
+                        "encrypted_password": bytes(row[3]) # This will now be bytes from BYTEA column
                     } for row in rows
                 ]
                 return True, passwords
