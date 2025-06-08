@@ -63,7 +63,7 @@ class Database:
                 return
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS "USER" (
-                    id SERIAL PRIMARY KEY,
+                    id SERIAL PRIMARY KEY ,
                     username TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
@@ -140,6 +140,19 @@ class Database:
             cursor.execute('SELECT * FROM "USER" WHERE email = %s', (email,))
             return cursor.fetchone()
 
+    def get_user_by_id(self, user_id):
+
+        """
+        Retrieves a user by ID.
+        Returns the user record as a tuple or None if not found.
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return None
+            
+            cursor.execute('SELECT * FROM "USER" WHERE id = %s', (user_id,))
+            return cursor.fetchone()
+
     def update_user_password(self, email, password):
         """
         Updates a user's password.
@@ -202,4 +215,121 @@ class Database:
             else:
                 return False, "User not found."
             
+
+    def save_password(self, user_id, website, username, encrypted_password):
+        """
+        Saves an encrypted password for a specific user.
+
+        Args:
+            user_id (int): The ID of the user who owns this password.
+            website (str): The name of the website or service.
+            username (str): The username for the external service.
+            encrypted_password (str): The password, ALREADY ENCRYPTED by the application.
+
+        Returns:
+            A tuple: (success: bool, message: str)
+        """
+        # The SQL INSERT statement now includes the 'user_id' column.
+        sql = """
+            INSERT INTO passwords (user_id, website, username, password) 
+            VALUES (%s, %s, %s, %s);
+        """
+        
+        try:
+            # The 'with' statement handles the connection and cursor closing.
+            with self.get_connection() as (conn, cursor):
+                
+                # The user_id is now passed along with the other data.
+                cursor.execute(sql, (user_id, website, username, encrypted_password))
+                
+                # Commit the transaction to make the changes permanent.
+                conn.commit()
+                
+                return True, "Password saved successfully."
+        except psycopg2.Error as e:
+            # If any database error occurs, it will be caught here.
+            return False, f"Database error: {e}"
+        
+    def list_passwords(self, user_id):
+        """
+        Lists all passwords for a specific user.
+
+        Args:
+            user_id (int): The ID of the user whose passwords are to be listed.
+
+        Returns:
+            A list of dictionaries containing password details or an error message.
+        """
+        sql = "SELECT * FROM passwords WHERE user_id = %s;"
+
+        try:
+            with self.get_connection() as (conn, cursor):
+                cursor.execute(sql, (user_id,))
+                rows = cursor.fetchall()
+                print(rows)
+                # Convert rows to a list of dictionaries for easier access.
+                passwords = [
+                    {
+                        "website": row[0],
+                        "username": row[1],
+                        "encrypted_password": row[2]
+                    } for row in rows
+                ]
+                
+                return True, passwords
+        except psycopg2.Error as e:
+            return False, f"Database error: {e}"
+
+
+    def get_password(self, user_id, website):
+        """
+        Retrieves a specific password for a user by website.
+
+        Args:
+            user_id (int): The ID of the user.
+            website (str): The name of the website or service.
+
+        Returns:
+            A dictionary with password details or an error message.
+        """
+        sql = "SELECT username, password FROM passwords WHERE user_id = %s AND website = %s;"
+
+        try:
+            with self.get_connection() as (conn, cursor):
+                cursor.execute(sql, (user_id, website))
+                row = cursor.fetchone()
+                
+                if row:
+                    return {
+                        "username": row[0],
+                        "encrypted_password": row[1]
+                    }
+                else:
+                    return f"No password found for {website}."
+        except psycopg2.Error as e:
+            return f"Database error: {e}"
+    def delete_password(self,id,user_id):
+        sql = "DELETE FROM passwords WHERE id = %s AND user_id = %s;"
+
+        try:
+            with self.get_connection() as (conn,cour):
+                cour.execute(sql,id,user_id)
+                conn.commit()
+                if cour.rowcount > 0:
+                    return True, "Password deleted successfully."
+                else:
+                    return False, "Password not found or you do not have permission to delete it."
+        except psycopg2.Error as e:
+            return False, f"Database error: {e}"
+            
+
+# if __name__ == "__main__":
+#     db = Database()
+#     # Example usage
+#     db.save_password(
+#         user_id=1,
+#         website="example.com",
+#         username="username",
+#         encrypted_password="encrypted_password")
+#     print(db.list_passwords(1))
 
