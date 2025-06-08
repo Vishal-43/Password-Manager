@@ -1,59 +1,188 @@
+import psycopg2
 import os
 from dotenv import load_dotenv
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, OperationFailure
+from contextlib import contextmanager
 
+# Load environment variables from a .env file
 load_dotenv()
 
-import os
-from supabase import create_client
-
-url= os.environ.get("SUPABASE_URL")
-key= os.environ.get("SUPABASE_KEY")
-supabase= create_client(url, key)
-
 class Database:
-    def Sign_up(self, username, email, password):
+    """
+    Handles all database operations for the application.
+    It uses a connection pool for efficiency and manages connections
+    and cursors safely using a context manager.
+    """
+    def __init__(self):
+        """Initializes the database connection details."""
         try:
+            self.conn_params = {
+                "host": os.getenv("DB_HOST", "localhost"),
+                "port": os.getenv("DB_PORT", "5432"),
+                "database": os.getenv("DB_NAME"),
+                "user": os.getenv("DB_USER"),
+                "password": os.getenv("DB_PASSWORD")
+            }
+            # Test connection on startup
+            with self.get_connection() as conn:
+                if conn:
+                    print("✅ Database connection established successfully.")
+                    self._create_user_table()
+                else:
+                    raise ConnectionError("Failed to establish database connection.")
+        except Exception as e:
+            print(f"❌ Critical Error during Database initialization: {e}")
+            self.conn_params = None
+
+    @contextmanager
+    def get_connection(self):
+        """
+        Provides a database connection from the pool.
+        This method is a context manager, ensuring that connections are
+        returned to the pool safely and automatically.
+        """
+        if not self.conn_params:
+            yield None, None
+            return
             
-            user_auth_response = supabase.auth.sign_up({"email": email, "password": password})
-            
-            
-            if user_auth_response and user_auth_response.user:
-                print(f"User '{email}' successfully signed up with Supabase authentication.")
-                
-                
-                try:
-                    data = supabase.table("users").insert({"username": username, "email": email,"password":password}).execute() 
-                    print(f"User details inserted into 'users' table for '{username}'.")
-                    return user_auth_response.user #
-                except Exception as db_e:
-                    print(f"Error inserting user details into 'users' table after successful auth: {db_e}")
-                   
-                    return None # Indicate failure in database insertion
-            else:
-              
-                print(f"Supabase authentication sign-up did not return a user for {email}.")
+        conn = None
+        try:
+            conn = psycopg2.connect(**self.conn_params)
+            cursor = conn.cursor()
+            yield conn, cursor
+        except psycopg2.Error as e:
+            print(f"❌ Database Connection Error: {e}")
+            yield None, None
+        finally:
+            if conn:
+                conn.close()
+
+    def _create_user_table(self):
+        """Creates the USER table if it doesn't exist."""
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS "USER" (
+                    id SERIAL PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    verification_status TEXT NOT NULL 
+                );
+            ''')
+            conn.commit()
+            print("Table 'USER' is ready.")
+
+    def create_user(self, username, email, password):
+        """
+        Creates a new user in the database.
+        Returns a tuple: (success: bool, message: str)
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return False, "Database connection error."
+
+            try:
+                # Check if email already exists
+                cursor.execute('SELECT email FROM "USER" WHERE email = %s', (email,))
+                if cursor.fetchone():
+                    return False, "Email is already registered."
+
+                # Insert new user
+                cursor.execute(
+                    'INSERT INTO "USER" (username, email, password, verification_status) VALUES (%s, %s, %s, %s)',
+                    (username, email, password, "not_verified")
+                )
+                conn.commit()
+                return True, "User created successfully."
+            except psycopg2.Error as e:
+                return False, str(e)
+
+    def check_verification_status(self, email):
+        """
+        Checks the verification status for a given email.
+        Returns the status string ("verified" or "not_verified") or None if not found.
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
                 return None
 
-        except Exception as e:
-            # Catch all other exceptions, including Supabase auth errors
-            print(f"Error signing up: {e}")
-            
-            # You can add more specific error handling based on the exception type or message from Supabase.
-            # For example, checking for specific error codes or messages.
-            if "User already registered" in str(e): # Example of checking error message
-                print("Hint: This email address is already registered.")
-            elif "Password should be at least 6 characters" in str(e):
-                print("Hint: Password must be at least 6 characters long.")
-            
-            return None
+            cursor.execute('SELECT verification_status FROM "USER" WHERE email = %s', (email,))
+            result = cursor.fetchone()
+            return result[0] if result else None
 
+    def update_verification_status(self, email, status="verified"):
+        """
+        Updates the user's verification status.
+        Returns a tuple: (success: bool, message: str)
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return False, "Database connection error."
+            
+            cursor.execute('UPDATE "USER" SET verification_status = %s WHERE email = %s', (status, email))
+            conn.commit()
+            # rowcount checks if any row was updated
+            if cursor.rowcount > 0:
+                return True, "Verification status updated."
+            else:
+                return False, "User not found."
 
-    def log_in(self, email, password):
-        try:
-            user = supabase.auth.sign_in({ "email": email, "password": password })
-            return user
-        except Exception as e:
-            print("Error logging in:", e)
-            return None
+    def get_user(self, email):
+        """
+        Retrieves a user by email.
+        Returns the user record as a tuple or None if not found.
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return None
+            
+            cursor.execute('SELECT * FROM "USER" WHERE email = %s', (email,))
+            return cursor.fetchone()
+
+    def update_user_password(self, email, password):
+        """
+        Updates a user's password.
+        Returns a tuple: (success: bool, message: str)
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return False, "Database connection error."
+
+            cursor.execute('UPDATE "USER" SET password = %s WHERE email = %s', (password, email))
+            conn.commit()
+            if cursor.rowcount > 0:
+                return True, "Password updated successfully."
+            else:
+                return False, "User not found."
+
+    def get_user_for_login(self, email, password):
+        """
+        Verifies user credentials for login.
+        Returns a tuple: (success: bool, data: Union[str, dict])
+        On success, data is a dict with user info. On failure, it's an error message.
+        """
+        with self.get_connection() as (conn, cursor):
+            if not conn:
+                return False, "Database connection error."
+            
+            cursor.execute(
+                'SELECT id, username, email FROM "USER" WHERE email = %s AND password = %s AND verification_status = %s',
+                (email, password, "verified")
+            )
+            user = cursor.fetchone()
+
+            if user:
+                user_data = {"id": user[0], "username": user[1], "email": user[2]}
+                return True, user_data
+            else:
+                # Check if the user exists but credentials are wrong or not verified
+                cursor.execute('SELECT verification_status FROM "USER" WHERE email = %s', (email,))
+                result = cursor.fetchone()
+                if not result:
+                    return False, "Invalid email or password."
+                if result[0] == 'not_verified':
+                    return False, "Account not verified. Please check your email."
+                return False, "Invalid email or password."
+
+ 
