@@ -1,7 +1,7 @@
 from typing import Union
 import re
 from fastapi import FastAPI, Request, Form, HTTPException, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -10,19 +10,23 @@ from starlette.status import HTTP_303_SEE_OTHER
 # Assuming the corrected database class is in database.py
 from databse import Database
 import sendmail
+from main import PasswordManager # Import the new PasswordManager
 
 # --- Configuration and Initialization ---
 
-SECRET_KEY = "@tuzi$layki$nahi$bhava@"
+SECRET_KEY = "@tuzi$layki$nahi$bhava@" # Replace with a strong, randomly generated key in production
 PASSWORD_REGEX = re.compile(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
 STRONG_PASSWORD_MESSAGE = "Password must be at least 8 characters long and include one uppercase letter, one lowercase letter, one number, and one special character."
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+# Assuming 'static' directory exists in the same location as your website.py
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Assuming 'templates' directory exists in the same location as your website.py
 templates = Jinja2Templates(directory="templates")
-db = Database()
+db = Database() # Database instance
+pm = PasswordManager() # PasswordManager instance
 
 # --- Helper Functions and Dependencies ---
 
@@ -38,14 +42,23 @@ def get_session_email(request: Request, key: str = "unverified_email") -> str:
         raise HTTPException(status_code=HTTP_303_SEE_OTHER, detail="Session expired.", headers={"Location": "/signup"})
     return email
 
+def get_current_user(request: Request) -> dict:
+    """Dependency to get the current authenticated user from the session."""
+    user = request.session.get('user')
+    if not user:
+        raise HTTPException(status_code=HTTP_303_SEE_OTHER, detail="Not authenticated.", headers={"Location": "/login"})
+    return user
+
 # --- Route Handlers ---
 
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
+    """Renders the root page."""
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/signup", response_class=HTMLResponse)
 def get_signup(request: Request):
+    """Renders the signup page."""
     return templates.TemplateResponse("signup.html", {"request": request})
 
 @app.post("/signup")
@@ -56,13 +69,13 @@ async def post_signup(
     password: str = Form(...),
     confirm_password: str = Form(...)
 ):
+    """Handles new user registration."""
     if password != confirm_password:
         return templates.TemplateResponse("signup.html", {"request": request, "error": "Passwords do not match."})
     
     if not is_strong_password(password):
         return templates.TemplateResponse("signup.html", {"request": request, "error": STRONG_PASSWORD_MESSAGE})
 
-    # CORRECTED: Removed verification_status argument
     is_success, message = db.create_user(username=username, email=email, password=password)
     
     if not is_success:
@@ -76,6 +89,7 @@ async def post_signup(
 
 @app.get("/verify", response_class=HTMLResponse)
 def get_verification_page(request: Request, email: str = Depends(get_session_email)):
+    """Renders the email verification page."""
     return templates.TemplateResponse("verify.html", {"request": request, "email": email})
 
 @app.post("/verify")
@@ -84,7 +98,7 @@ async def post_verification(
     code: str = Form(...),
     email: str = Depends(get_session_email)
 ):
-    # CORRECTED: Unpacking was incorrect, now gets single status value
+    """Handles email verification code submission."""
     status = db.check_verification_status(email=email)
     
     if status == "verified":
@@ -94,18 +108,18 @@ async def post_verification(
     if session_code != code:
         return templates.TemplateResponse("verify.html", {"request": request, "message": "Invalid verification code."})
 
-    # CORRECTED: Changed keyword argument from verification_status to status
     db.update_verification_status(email=email, status="verified")
     request.session.clear()
     return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
 
 @app.get("/login", response_class=HTMLResponse)
 def get_login(request: Request):
+    """Renders the login page."""
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.post("/login")
 async def post_login(request: Request, email: str = Form(...), password: str = Form(...)):
-    # CORRECTED: Renamed function to match database.py
+    """Handles user login."""
     is_valid, user_data_or_error = db.get_user_for_login(email=email, password=password)
     
     if not is_valid:
@@ -115,21 +129,57 @@ async def post_login(request: Request, email: str = Form(...), password: str = F
     return RedirectResponse(url="/dashboard", status_code=HTTP_303_SEE_OTHER)
 
 @app.get("/dashboard", response_class=HTMLResponse)
-def get_dashboard(request: Request):
-    if 'user' not in request.session:
-        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse("dashbord.html", {"request": request, "user": request.session['user']})
+def get_dashboard(request: Request, user: dict = Depends(get_current_user)):
+    """Renders the dashboard page."""
+    return templates.TemplateResponse("dashbord.html", {"request": request, "username": user['username']})
 
-@app.post("/dashboard", response_class=HTMLResponse)
-######################################### in progress #####################################
+@app.post("/dashboard")
+async def add_new_password(
+    request: Request, 
+    website: str = Form(...), 
+    username: str = Form(...), 
+    password: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Handles adding a new password entry."""
+    user_id = current_user['id']
+    success, message = pm.add_password(user_id=user_id, website=website, username=username, raw_password=password)
+    
+    if success:
+        return JSONResponse({"message": message}, status_code=200)
+    else:
+        raise HTTPException(status_code=400, detail=message)
 
+@app.get("/list_passwords")
+async def list_user_passwords(request: Request, current_user: dict = Depends(get_current_user)):
+    """API endpoint to list all passwords for the authenticated user."""
+    user_id = current_user['id']
+    success, passwords_data = pm.get_passwords(user_id=user_id)
+    
+    if success:
+        return JSONResponse({"passwords": passwords_data}, status_code=200)
+    else:
+        raise HTTPException(status_code=500, detail=passwords_data) # passwords_data will be an error message here
+
+@app.delete("/delete_password/{item_id}")
+async def delete_user_password(request: Request, item_id: int, current_user: dict = Depends(get_current_user)):
+    """API endpoint to delete a specific password entry."""
+    user_id = current_user['id']
+    success, message = pm.delete_password(password_id=item_id, user_id=user_id)
+    
+    if success:
+        return JSONResponse({"message": message}, status_code=200)
+    else:
+        raise HTTPException(status_code=400, detail=message)
 
 @app.get("/forgot_passsword", response_class=HTMLResponse)
 def get_forgot_password(request: Request):
+    """Renders the forgot password page."""
     return templates.TemplateResponse("forgotpassword.html", {"request": request})
 
 @app.post("/forgot_passsword")
 async def post_forgot_password(request: Request, email: str = Form(...)):
+    """Handles the forgot password request and sends a reset code."""
     if not db.get_user(email=email):
         return templates.TemplateResponse("forgotpassword.html", {"request": request, "message": "Email not found."})
     
@@ -140,6 +190,7 @@ async def post_forgot_password(request: Request, email: str = Form(...)):
 
 @app.get("/reset_password_verify", response_class=HTMLResponse)
 def get_reset_password_verify(request: Request):
+    """Renders the reset password code verification page."""
     return templates.TemplateResponse("reset_password_code_verification.html", {"request": request})
 
 @app.post("/reset_password_verify")
@@ -148,6 +199,7 @@ async def post_reset_password_verify(
     reset_code: str = Form(...),
     email: str = Depends(lambda r: get_session_email(r, "reset_email"))
 ):
+    """Handles the reset password code verification submission."""
     session_code = request.session.get('reset_code')
     if session_code != reset_code:
         return templates.TemplateResponse("reset_password_code_verification.html", {"request": request, "message": "Invalid code."})
@@ -156,18 +208,16 @@ async def post_reset_password_verify(
 
 @app.get("/reset_password", response_class=HTMLResponse)
 def get_reset_password(request: Request):
+    """Renders the reset password page."""
     return templates.TemplateResponse("reset_password.html", {"request": request})
 
 @app.post("/reset_password")
 async def post_reset_password(
     request: Request,
     new_password: str = Form(...),
-   
-    
+    email: str = Depends(lambda r: get_session_email(r, "reset_email")) # Ensure email is present
 ):
-    email = request.session.get('reset_email')
-    if not email:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "error": "Session expired. Please try again."})
+    """Handles setting the new password."""
     if not is_strong_password(new_password):
         return templates.TemplateResponse("reset_password.html", {"request": request, "error": STRONG_PASSWORD_MESSAGE})
 
@@ -179,5 +229,7 @@ async def post_reset_password(
 
 @app.get("/logout")
 async def logout(request: Request):
+    """Handles user logout."""
     request.session.clear()
     return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+

@@ -2,6 +2,7 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 from contextlib import contextmanager
+from typing import Union
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -23,10 +24,10 @@ class Database:
                 "password": os.getenv("DB_PASSWORD")
             }
             # Test connection on startup
-            with self.get_connection() as conn:
+            with self.get_connection() as (conn, cursor):
                 if conn:
                     print("✅ Database connection established successfully.")
-                    self._create_user_table()
+                    self._create_tables() # Call the new _create_tables method
                 else:
                     raise ConnectionError("Failed to establish database connection.")
         except Exception as e:
@@ -56,22 +57,36 @@ class Database:
             if conn:
                 conn.close()
 
-    def _create_user_table(self):
-        """Creates the USER table if it doesn't exist."""
+    def _create_tables(self):
+        """Creates the USER and PASSWORDS tables if they don't exist."""
         with self.get_connection() as (conn, cursor):
             if not conn:
                 return
+            
+            # Create USER table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS "USER" (
-                    id SERIAL PRIMARY KEY ,
+                    id SERIAL PRIMARY KEY,
                     username TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
                     verification_status TEXT NOT NULL 
                 );
             ''')
+            
+            # Create PASSWORDS table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS passwords (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    website TEXT NOT NULL,
+                    username TEXT NOT NULL,
+                    password BYTEA NOT NULL, -- CHANGED TO BYTEA for encrypted password
+                    FOREIGN KEY (user_id) REFERENCES "USER"(id) ON DELETE CASCADE
+                );
+            ''')
             conn.commit()
-            print("Table 'USER' is ready.")
+            print("Tables 'USER' and 'passwords' are ready.")
 
     def create_user(self, username, email, password):
         """
@@ -141,7 +156,6 @@ class Database:
             return cursor.fetchone()
 
     def get_user_by_id(self, user_id):
-
         """
         Retrieves a user by ID.
         Returns the user record as a tuple or None if not found.
@@ -197,8 +211,7 @@ class Database:
                 if result[0] == 'not_verified':
                     return False, "Account not verified. Please check your email."
                 return False, "Invalid email or password."
-
- 
+    
     def delete_user(self, email):
         """
         Deletes a user by email.
@@ -215,8 +228,7 @@ class Database:
             else:
                 return False, "User not found."
             
-
-    def save_password(self, user_id, website, username, encrypted_password):
+    def save_password(self, user_id, website, username, encrypted_password: bytes): # Added type hint for clarity
         """
         Saves an encrypted password for a specific user.
 
@@ -224,33 +236,27 @@ class Database:
             user_id (int): The ID of the user who owns this password.
             website (str): The name of the website or service.
             username (str): The username for the external service.
-            encrypted_password (str): The password, ALREADY ENCRYPTED by the application.
+            encrypted_password (bytes): The password, ALREADY ENCRYPTED by the application.
 
         Returns:
             A tuple: (success: bool, message: str)
         """
-        # The SQL INSERT statement now includes the 'user_id' column.
         sql = """
             INSERT INTO passwords (user_id, website, username, password) 
             VALUES (%s, %s, %s, %s);
         """
         
         try:
-            # The 'with' statement handles the connection and cursor closing.
             with self.get_connection() as (conn, cursor):
-                
-                # The user_id is now passed along with the other data.
+                if not conn:
+                    return False, "Database connection error."
                 cursor.execute(sql, (user_id, website, username, encrypted_password))
-                
-                # Commit the transaction to make the changes permanent.
                 conn.commit()
-                
                 return True, "Password saved successfully."
         except psycopg2.Error as e:
-            # If any database error occurs, it will be caught here.
             return False, f"Database error: {e}"
         
-    def list_passwords(self, user_id):
+    def list_passwords(self, user_id: int):
         """
         Lists all passwords for a specific user.
 
@@ -258,82 +264,58 @@ class Database:
             user_id (int): The ID of the user whose passwords are to be listed.
 
         Returns:
-            A list of dictionaries containing password details or an error message.
+            A tuple: (success: bool, data: Union[list, str])
+            On success, data is a list of dictionaries containing password details.
+            On failure, data is an error message.
         """
-        sql = "SELECT * FROM passwords WHERE user_id = %s;"
+        sql = "SELECT id, website, username, password FROM passwords WHERE user_id = %s;"
 
         try:
             with self.get_connection() as (conn, cursor):
+                if not conn:
+                    return False, "Database connection error."
                 cursor.execute(sql, (user_id,))
                 rows = cursor.fetchall()
-                print(rows)
-                # Convert rows to a list of dictionaries for easier access.
                 passwords = [
                     {
-                        "website": row[0],
-                        "username": row[1],
-                        "encrypted_password": row[2]
+                        "id": row[0],
+                        "website": row[1],
+                        "username": row[2],
+                        "encrypted_password": row[3] # This will now be bytes from BYTEA column
                     } for row in rows
                 ]
-                
                 return True, passwords
         except psycopg2.Error as e:
             return False, f"Database error: {e}"
 
-
-    def get_password(self, user_id, website):
+    def delete_password(self, password_id: int, user_id: int):
         """
-        Retrieves a specific password for a user by website.
+        Deletes a password entry from the database.
 
         Args:
-            user_id (int): The ID of the user.
-            website (str): The name of the website or service.
+            password_id (int): The ID of the password to delete.
+            user_id (int): The ID of the user who owns this password (for security).
 
         Returns:
-            A dictionary with password details or an error message.
+            A tuple: (success: bool, message: str)
         """
-        sql = "SELECT username, password FROM passwords WHERE user_id = %s AND website = %s;"
-
-        try:
-            with self.get_connection() as (conn, cursor):
-                cursor.execute(sql, (user_id, website))
-                row = cursor.fetchone()
-                
-                if row:
-                    return True, {
-                        "username": row[0],
-                        "encrypted_password": row[1]
-                    }
-                else:
-                    return False, f"No password found for {website}."
-        except psycopg2.Error as e:
-            return f"Database error: {e}"
-        
-
-
-
-    def delete_password(self,id,user_id):
         sql = "DELETE FROM passwords WHERE id = %s AND user_id = %s;"
 
         try:
-            with self.get_connection() as (conn,cour):
-                cour.execute(sql,id,user_id)
+            with self.get_connection() as (conn, cursor):
+                if not conn:
+                    return False, "Database connection error."
+                cursor.execute(sql, (password_id, user_id))
                 conn.commit()
-                if cour.rowcount > 0:
+                if cursor.rowcount > 0:
                     return True, "Password deleted successfully."
                 else:
                     return False, "Password not found or you do not have permission to delete it."
         except psycopg2.Error as e:
             return False, f"Database error: {e}"
-            
 
-# if __name__ == "__main__":
-#     db = Database()
-#     # Example usage
-#     db.save_password(
-#         user_id=1,
-#         website="example.com",
-#         username="username",
-#         encrypted_password="encrypted_password")
-#     print(db.list_passwords(1))
+db = Database()  # Create a global instance of the Database class
 
+password = db.list_passwords(1)
+
+print(password[1])  # Alias for easier access in other modules

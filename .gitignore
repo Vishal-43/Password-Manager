@@ -1,2 +1,3 @@
 # Ignore .env file (CRITICAL for security)
 .env
+key.key
