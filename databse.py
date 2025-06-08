@@ -300,14 +300,18 @@ class Database:
                 row = cursor.fetchone()
                 
                 if row:
-                    return {
+                    return True, {
                         "username": row[0],
                         "encrypted_password": row[1]
                     }
                 else:
-                    return f"No password found for {website}."
+                    return False, f"No password found for {website}."
         except psycopg2.Error as e:
             return f"Database error: {e}"
+        
+
+
+
     def delete_password(self,id,user_id):
         sql = "DELETE FROM passwords WHERE id = %s AND user_id = %s;"
 

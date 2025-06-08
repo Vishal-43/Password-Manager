@@ -118,7 +118,11 @@ async def post_login(request: Request, email: str = Form(...), password: str = F
 def get_dashboard(request: Request):
     if 'user' not in request.session:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": request.session['user']})
+    return templates.TemplateResponse("dashbord.html", {"request": request, "user": request.session['user']})
+
+@app.post("/dashboard", response_class=HTMLResponse)
+######################################### in progress #####################################
+
 
 @app.get("/forgot_passsword", response_class=HTMLResponse)
 def get_forgot_password(request: Request):
