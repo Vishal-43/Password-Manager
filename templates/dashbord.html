@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         passwordsToRender.forEach(p => {
             const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-md p-5 flex flex-col justify-between';
+            card.className = 'bg-white rounded-xl shadow-md p-5 flex flex-col justify-between transform hover:scale-105 hover:shadow-lg transition-all duration-200 ease-in-out'; // Added hover effect classes
             card.dataset.id = p.id; 
 
             const logoUrl = `https://logo.clearbit.com/${p.website}`;

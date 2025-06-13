@@ -5,10 +5,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-SMPT_SERVER = "smtp.gmail.com"
-SMPT_PORT = 587
-SMPT_EMAIL = "binaryvoids@gmail.com"
-SMPT_PASSWORD = "joylzzngqgicmlou"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_EMAIL = "<your_email>"
+SMTP_PASSWORD = "<your_password>"
 
 def generate_reset_code():
     return str(random.randint(100000, 999999))
