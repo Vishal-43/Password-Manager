@@ -6,3 +6,17 @@ psycopg2-binary
 passlib[bcrypt]
 python-multipart
 itsdangerous
+os
+dotenv
+random
+logging
+smtplib
+email.mime.text
+MIMEText
+email.mime.multipart
+MIMEMultipart
+binascii
+cryptography.fernet 
+contextlib
+typing
+psycopg2
