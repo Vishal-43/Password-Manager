@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from contextlib import contextmanager
 from typing import Union
-from psycopg2 import conninfo # Import conninfo
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -21,7 +20,7 @@ class Database:
 
             if DATABASE_URL:
                 # Parse the DATABASE_URL into a dictionary of connection parameters
-                self.conn_params = conninfo.conninfo_to_dict(DATABASE_URL)
+                self.conn_params = psycopg2.connect(DATABASE_URL)
             else:
                 # Fallback for local development if needed, using local credentials
                 self.conn_params = {
