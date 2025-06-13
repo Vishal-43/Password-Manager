@@ -8,7 +8,7 @@ python-multipart
 itsdangerous
 
 dotenv
-random
+
 logging
 smtplib
 email.mime.text
