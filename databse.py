@@ -315,6 +315,39 @@ class Database:
                     return False, "Password not found or you do not have permission to delete it."
         except psycopg2.Error as e:
             return False, f"Database error: {e}"
+        
+    def update_password(self, password_id,
+            user_id,
+            website,
+            username,
+            encrypted_password): # Added type hint for clarity
+        """
+        Saves an encrypted password for a specific user.
+
+        Args:
+            user_id (int): The ID of the user who owns this password.
+            website (str): The name of the website or service.
+            username (str): The username for the external service.
+            encrypted_password (bytes): The password, ALREADY ENCRYPTED by the application.
+
+        Returns:
+            A tuple: (success: bool, message: str)
+        """
+        sql = """
+            UPDATE passwords SET password = %s WHERE id = %s AND user_id = %s;
+        """
+        print(encrypted_password)  # Debugging line to check the encrypted password format
+
+        
+        try:
+            with self.get_connection() as (conn, cursor):
+                if not conn:
+                    return False, "Database connection error."
+                cursor.execute(sql, (encrypted_password, password_id, user_id))
+                conn.commit()
+                return True, "Password saved successfully."
+        except psycopg2.Error as e:
+            return False, f"Database error: {e}"
 
 db = Database()  # Create a global instance of the Database class
 
