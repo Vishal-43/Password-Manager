@@ -96,7 +96,15 @@ class PasswordManager:
     def delete_password(self, password_id: int, user_id: int):
         return db.delete_password(password_id, user_id)
 
-
+    def update_password(self, password_id: int, user_id: int, website: str, username: str, raw_password: str = None) -> tuple[bool, str]:
+        
+        try:
+            print(raw_password)
+            encrypted_password = self.encrypt_password(raw_password)
+            print(encrypted_password)
+            return db.update_password(password_id, user_id, website, username, encrypted_password)
+        except Exception as e:
+            return False, f"Error encrypting or saving password: {e}"
 # For testing
 pm = password_manager = PasswordManager()
 
