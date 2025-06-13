@@ -10,7 +10,7 @@ itsdangerous
 dotenv
 
 logging
-smtplib
+
 email.mime.text
 MIMEText
 email.mime.multipart
