@@ -16,13 +16,21 @@ class Database:
     def __init__(self):
         """Initializes the database connection details."""
         try:
-            self.conn_params = {
+
+            DATABASE_URL = os.environ.get('DATABASE_URL') # Or individual components
+
+            if DATABASE_URL:
+                conn = psycopg2.connect(DATABASE_URL)
+            else:
+                # Fallback for local development if needed, using local credentials
+                self.conn_params = {
                 "host": os.getenv("DB_HOST", "localhost"),
                 "port": os.getenv("DB_PORT", "5432"),
                 "database": os.getenv("DB_NAME"),
                 "user": os.getenv("DB_USER"),
                 "password": os.getenv("DB_PASSWORD")
             }
+            
             # Test connection on startup
             with self.get_connection() as (conn, cursor):
                 if conn:
