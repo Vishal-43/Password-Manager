@@ -122,9 +122,8 @@
     <div id="password-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4 opacity-0 pointer-events-none">
         <div class="modal-content bg-white w-full max-w-md p-6 rounded-xl shadow-2xl transform scale-95">
             <h2 id="modal-title" class="text-2xl font-montserrat font-semibold text-charcoal mb-6">Add New Item</h2>
-            <!-- This form now submits via JavaScript -->
             <form id="password-form">
-                <input type="hidden" id="item-id">
+                <input type="hidden" id="item-id" name="item_id">
                 <div class="space-y-4">
                     <div>
                         <label for="item-website" class="text-sm font-semibold text-gray-600">Website</label>
@@ -162,8 +161,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- GLOBAL STATE ---
-    let allPasswords = []; // This will hold the master list of passwords from the server
+    let allPasswords = [];
     let passwordToDeleteId = null;
+    let currentEditItemId = null; 
 
     // --- DOM ELEMENTS ---
     const sidebar = document.getElementById('sidebar');
@@ -173,52 +173,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingState = document.getElementById('loading-state');
     const emptyState = document.getElementById('empty-state');
     
-    // Modals and Forms
     const passwordModal = document.getElementById('password-modal');
     const passwordForm = document.getElementById('password-form');
     const addNewBtn = document.getElementById('add-new-btn');
     const cancelBtn = document.getElementById('cancel-btn');
+    const modalTitle = document.getElementById('modal-title');
+    const itemIdInput = document.getElementById('item-id');
+    const itemWebsiteInput = document.getElementById('item-website');
+    const itemUsernameInput = document.getElementById('item-username');
+    const itemPasswordInput = document.getElementById('item-password');
+    
     const deleteModal = document.getElementById('delete-modal');
     const deleteCancelBtn = document.getElementById('delete-cancel-btn');
     const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
 
     // --- API FUNCTIONS ---
-    // The baseUrl is correctly set by the browser itself.
     const baseUrl = window.location.origin; 
 
-    /**
-     * Fetches all passwords from the backend.
-     * Assumes the backend route /list_passwords returns a JSON array.
-     */
     const fetchPasswords = async () => {
         showLoading(true);
         try {
-            // Updated endpoint for listing passwords
             const response = await fetch(`${baseUrl}/list_passwords`); 
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Failed to fetch passwords');
             }
-            
             const data = await response.json();
             allPasswords = data.passwords || [];
             renderPasswords(allPasswords);
         } catch (error) {
             console.error('Failed to fetch passwords:', error);
-            // Display error to the user in a less intrusive way (e.g., a temporary message)
-            // For now, we'll just log and keep the empty state if no passwords are fetched
+            passwordGrid.innerHTML = `<p class="text-red-500 col-span-full text-center">Error loading passwords: ${error.message}</p>`;
         } finally {
             showLoading(false);
         }
     };
 
-    /**
-     * Deletes a password entry from the server.
-     * @param {number} id - The ID of the password to delete.
-     */
+    const savePassword = async (formData, itemId) => {
+        const isEditing = itemId !== null && itemId !== '';
+        const url = isEditing ? `${baseUrl}/update_password/${itemId}` : `${baseUrl}/dashboard`;
+        const method = isEditing ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                body: formData, 
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `Failed to ${isEditing ? 'update' : 'save'} password.`);
+            }
+            
+            toggleModal(passwordModal, false);
+            passwordForm.reset();
+            currentEditItemId = null; 
+            fetchPasswords(); 
+        } catch (error) {
+            console.error(`Error ${isEditing ? 'updating' : 'submitting'} form:`, error);
+            alert(`Error: ${error.message}`); 
+        }
+    };
+
     const deletePassword = async (id) => {
         try {
-            // Updated endpoint for deleting passwords
             const response = await fetch(`${baseUrl}/delete_password/${id}`, { 
                 method: 'DELETE',
             });
@@ -226,19 +244,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Failed to delete password');
             }
-            // If successful, remove from local state and re-render
             allPasswords = allPasswords.filter(p => p.id !== id);
             renderPasswords(allPasswords);
             toggleModal(deleteModal, false);
         } catch (error) {
             console.error('Error deleting password:', error);
-            // In a real app, use a custom toast/message box instead of alert
             alert(`Error: ${error.message}`); 
         }
     };
 
     // --- UI/HELPER FUNCTIONS ---
-
     const showLoading = (isLoading) => {
         loadingState.style.display = isLoading ? 'flex' : 'none';
         passwordGrid.style.display = isLoading ? 'none' : 'grid';
@@ -252,14 +267,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             modal.classList.add('opacity-0');
             modal.querySelector('.modal-content').classList.add('scale-95');
-            // Give time for transition before hiding completely
             setTimeout(() => modal.classList.add('pointer-events-none'), 250); 
         }
     };
 
     const renderPasswords = (passwordsToRender) => {
         passwordGrid.innerHTML = '';
-        if (passwordsToRender.length === 0 && !loadingState.style.display) {
+        if (passwordsToRender.length === 0 && loadingState.style.display === 'none') {
             emptyState.classList.remove('hidden');
         } else {
             emptyState.classList.add('hidden');
@@ -268,9 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordsToRender.forEach(p => {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-md p-5 flex flex-col justify-between';
-            card.dataset.id = p.id; // Store the password ID on the card element
+            card.dataset.id = p.id; 
 
-            // Fallback for Clearbit logo: if an image fails to load, use a text placeholder
             const logoUrl = `https://logo.clearbit.com/${p.website}`;
             const placeholderUrl = `https://placehold.co/40x40/004D40/FFFFFF?text=${p.website.charAt(0).toUpperCase()}`;
 
@@ -286,7 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="mt-5 pt-4 border-t border-gray-100 flex justify-end space-x-2">
                     <button class="copy-btn text-sm font-semibold text-bright-cerulean hover:underline" data-password="${p.password}">Copy Password</button>
-                    <button class="delete-btn text-sm font-semibold text-red-500 hover:text-red-700">Delete</button>
+                    <button class="edit-btn text-sm font-semibold text-green-600 hover:text-green-800" data-id="${p.id}">Edit</button>
+                    <button class="delete-btn text-sm font-semibold text-red-500 hover:text-red-700" data-id="${p.id}">Delete</button>
                 </div>
             `;
             passwordGrid.appendChild(card);
@@ -294,47 +308,41 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- EVENT LISTENERS ---
-
     sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('-translate-x-full'));
+    
     addNewBtn.addEventListener('click', () => {
-        // Reset form and title for adding new item
         passwordForm.reset();
-        document.getElementById('item-id').value = ''; // Clear hidden ID for new item
-        document.getElementById('modal-title').textContent = 'Add New Item';
+        itemIdInput.value = ''; 
+        currentEditItemId = null;
+        modalTitle.textContent = 'Add New Item';
+        itemPasswordInput.placeholder = 'Enter password';
+        itemPasswordInput.required = true; 
         toggleModal(passwordModal, true);
     });
-    cancelBtn.addEventListener('click', () => toggleModal(passwordModal, false));
+
+    cancelBtn.addEventListener('click', () => {
+        toggleModal(passwordModal, false);
+        passwordForm.reset();
+        currentEditItemId = null;
+    });
+
     deleteCancelBtn.addEventListener('click', () => toggleModal(deleteModal, false));
     
-    // Handle Add Password Form Submission
     passwordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(passwordForm);
-        
-        try {
-            // This fetch call matches your existing POST /dashboard endpoint
-            const response = await fetch(`${baseUrl}/dashboard`, { 
-                method: 'POST',
-                body: formData
-            });
+        const itemId = itemIdInput.value;
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to save password.');
-            }
-            
-            // On success, close modal and refresh the list
-            toggleModal(passwordModal, false);
-            passwordForm.reset();
-            fetchPasswords(); // Re-fetch the list to show the new item
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            // In a real app, use a custom toast/message box instead of alert
-            alert(`Error: ${error.message}`); 
+        // If editing and password field is empty, remove it from formData
+        // so backend can decide to keep the old password.
+        // This assumes backend handles missing 'password' field during update by not changing it.
+        if (itemId && itemPasswordInput.value === '') {
+            formData.delete('password');
         }
+        
+        savePassword(formData, itemId || null);
     });
 
-    // Handle Search
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filtered = allPasswords.filter(p => 
@@ -344,15 +352,18 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPasswords(filtered);
     });
     
-    // Handle clicks on dynamic buttons (Copy, Delete) using event delegation
     passwordGrid.addEventListener('click', (e) => {
         const target = e.target;
+        const card = target.closest('.bg-white');
+        if (!card) return;
+
+        const id = card.dataset.id;
+
         if (target.classList.contains('copy-btn')) {
             const password = target.dataset.password; 
-            // Using document.execCommand('copy') for better compatibility within iframes
             const textarea = document.createElement('textarea');
             textarea.value = password;
-            textarea.style.position = 'fixed'; // Prevent scrolling to bottom
+            textarea.style.position = 'fixed'; 
             textarea.style.opacity = 0;
             document.body.appendChild(textarea);
             textarea.focus();
@@ -373,16 +384,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (target.classList.contains('delete-btn')) {
-            // Find the closest parent card with a data-id
-            const card = target.closest('.bg-white');
-            if (card) {
-                passwordToDeleteId = parseInt(card.dataset.id);
-                toggleModal(deleteModal, true);
+            passwordToDeleteId = parseInt(id);
+            toggleModal(deleteModal, true);
+        }
+
+        if (target.classList.contains('edit-btn')) {
+            const passwordToEdit = allPasswords.find(p => p.id === parseInt(id));
+            if (passwordToEdit) {
+                modalTitle.textContent = 'Edit Item';
+                itemIdInput.value = passwordToEdit.id;
+                currentEditItemId = passwordToEdit.id;
+                itemWebsiteInput.value = passwordToEdit.website;
+                itemUsernameInput.value = passwordToEdit.username;
+                itemPasswordInput.value = ''; 
+                itemPasswordInput.placeholder = 'Enter new password to change (optional)';
+                itemPasswordInput.required = false; 
+                toggleModal(passwordModal, true);
             }
         }
     });
 
-    // Handle Delete Confirmation
     deleteConfirmBtn.addEventListener('click', () => {
         if (passwordToDeleteId !== null) {
             deletePassword(passwordToDeleteId);
