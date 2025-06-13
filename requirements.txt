@@ -11,10 +11,8 @@ dotenv
 
 logging
 
-email.mime.text
-MIMEText
-email.mime.multipart
-MIMEMultipart
+
+
 binascii
 cryptography.fernet 
 contextlib
