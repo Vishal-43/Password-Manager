@@ -81,7 +81,7 @@ Follow these instructions to get a local copy of SecureVault up and running.
 
 1.  **Clone the repository:**
     ```sh
-    git clone [https://github.com/your-username/SecureVault.git](https://github.com/your-username/SecureVault.git)
+    git clone [https://github.com/Vishal-43/Password-Manager](https://github.com/Vishal-43/Password-Manager)
     cd SecureVault
     ```
 
