@@ -172,6 +172,32 @@ async def delete_user_password(request: Request, item_id: int, current_user: dic
     else:
         raise HTTPException(status_code=400, detail=message)
 
+@app.put("/update_password/{item_id}")
+async def update_user_password(
+    request: Request,
+    item_id: int,
+    website: str = Form(...),
+    username: str = Form(...),
+    password: str = Form(None),  # Password can be None if not changing
+    current_user: dict = Depends(get_current_user)
+):
+    """API endpoint to update a specific password entry."""
+    user_id = current_user['id']
+    
+    success, message = pm.update_password(
+        password_id=item_id,
+        user_id=user_id,
+        website=website,
+        username=username,
+        raw_password=password if password else None  # Pass None if password field was empty on the form
+    )
+
+    if success:
+        return JSONResponse({"message": "Password updated successfully."}, status_code=200)
+    else:
+        # Consider more specific error codes, e.g., 404 if item_id not found
+        raise HTTPException(status_code=400, detail=message)
+
 @app.get("/forgot_passsword", response_class=HTMLResponse)
 def get_forgot_password(request: Request):
     """Renders the forgot password page."""
