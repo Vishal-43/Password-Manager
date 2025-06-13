@@ -3,12 +3,14 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_EMAIL = "<your_email>"
-SMTP_PASSWORD = "<your_password>"
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 def generate_reset_code():
     return str(random.randint(100000, 999999))
