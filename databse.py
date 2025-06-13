@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from contextlib import contextmanager
 from typing import Union
+from psycopg2 import conninfo # Import conninfo
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -16,20 +17,20 @@ class Database:
     def __init__(self):
         """Initializes the database connection details."""
         try:
-
             DATABASE_URL = os.environ.get('DATABASE_URL') # Or individual components
 
             if DATABASE_URL:
-                self.conn_params = psycopg2.connect(DATABASE_URL)
+                # Parse the DATABASE_URL into a dictionary of connection parameters
+                self.conn_params = conninfo.conninfo_to_dict(DATABASE_URL)
             else:
                 # Fallback for local development if needed, using local credentials
                 self.conn_params = {
-                "host": os.getenv("DB_HOST", "localhost"),
-                "port": os.getenv("DB_PORT", "5432"),
-                "database": os.getenv("DB_NAME"),
-                "user": os.getenv("DB_USER"),
-                "password": os.getenv("DB_PASSWORD")
-            }
+                    "host": os.getenv("DB_HOST", "localhost"),
+                    "port": os.getenv("DB_PORT", "5432"),
+                    "database": os.getenv("DB_NAME"),
+                    "user": os.getenv("DB_USER"),
+                    "password": os.getenv("DB_PASSWORD")
+                }
             
             # Test connection on startup
             with self.get_connection() as (conn, cursor):
@@ -55,6 +56,7 @@ class Database:
             
         conn = None
         try:
+            # This line is now correct because self.conn_params will always be a dictionary
             conn = psycopg2.connect(**self.conn_params)
             cursor = conn.cursor()
             yield conn, cursor
