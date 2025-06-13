@@ -20,7 +20,7 @@ class Database:
             DATABASE_URL = os.environ.get('DATABASE_URL') # Or individual components
 
             if DATABASE_URL:
-                conn = psycopg2.connect(DATABASE_URL)
+                self.conn_params = psycopg2.connect(DATABASE_URL)
             else:
                 # Fallback for local development if needed, using local credentials
                 self.conn_params = {
