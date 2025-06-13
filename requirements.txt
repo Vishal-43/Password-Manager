@@ -6,7 +6,7 @@ psycopg2-binary
 passlib[bcrypt]
 python-multipart
 itsdangerous
-os
+
 dotenv
 random
 logging
