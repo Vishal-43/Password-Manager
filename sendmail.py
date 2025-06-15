@@ -7,10 +7,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+SMPT_SERVER = "smtp.gmail.com"
+SMPT_PORT = 587
+SMPT_EMAIL = os.getenv("SMTP_EMAIL")
+SMPT_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 def generate_reset_code():
     return str(random.randint(100000, 999999))
