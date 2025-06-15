@@ -108,4 +108,4 @@ class PasswordManager:
 # For testing
 pm = password_manager = PasswordManager()
 
-pm.add_password(1, "example.com", "user1", "password123")
+
